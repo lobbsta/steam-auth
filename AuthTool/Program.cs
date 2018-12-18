@@ -20,26 +20,36 @@ namespace AuthTool
             [Option('n', "phone-number", Required = false, HelpText = "Phone number")]
             public string PhoneNumber { get; set; }
 
-            [Value(0, MetaName = "action", HelpText = "Action")]
+            [Value(0, MetaName = "action", HelpText = "Action (one of: \"activate\")")]
             public string Action { get; set; }
         }
 
         public static UserLogin Login(string username, string password)
         {
+            Console.WriteLine("Logging in with user \"{0}\".", username);
             var user = new UserLogin(username, password);
             var loginResult = user.DoLogin();
+
+            if(loginResult == LoginResult.NeedEmail)
+            {
+                Console.WriteLine("Email verification required. Waiting for code...");
+                user.EmailCode = Console.ReadLine();
+                loginResult = user.DoLogin();
+            }
+
             if (loginResult != LoginResult.LoginOkay)
             {
-                Console.WriteLine("Login failed with result \"{0}\"", loginResult);
+                Console.WriteLine("Login failed with result \"{0}\".", loginResult);
                 return null;
             }
 
+            Console.WriteLine("Login successful.");
             return user;
         }
 
         public static void Activate(UserLogin user, string phoneNumber)
         {
-            Console.WriteLine("Activating 2FA for user \"{0}\" with phone \"{1}\"", user.Username, phoneNumber);
+            Console.WriteLine("Activating 2FA for user \"{0}\" with phone number \"{1}\"", user.Username, phoneNumber);
 
             var auth = new AuthenticatorLinker(user.Session);
             auth.PhoneNumber = phoneNumber;
@@ -75,8 +85,6 @@ namespace AuthTool
                {
                   return;
                }
-
-               Console.WriteLine("Steam login successful");
 
                if (o.Action == "activate")
                {
